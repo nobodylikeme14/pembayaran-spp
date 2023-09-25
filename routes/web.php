@@ -30,10 +30,6 @@ Route::middleware('guest')->group(function () {
     Route::get('/', [AuthController::class, 'login'])->name('login');
     Route::post('/', [AuthController::class, 'loginPost'])->name('loginPost');
 
-    Route::get('/test-mail', function() {
-        return view('password.email');
-    });
-
     //Reset Password
     Route::get('/lupa-password', [ResetPasswordController::class, 'lupa_password'])->name('lupa_password');
     Route::post('/lupa-password', [ResetPasswordController::class, 'lupa_passwordPost'])->name('lupa_passwordPost');
