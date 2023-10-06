@@ -7,27 +7,30 @@ use App\Http\Controllers\System\PusherController;
 use Illuminate\Http\Request;
 use App\Models\Petugas;
 use DataTables;
-use Session;
+use Throwable;
 use Hash;
 
 class PetugasController extends Controller
 {
     //Pusher
     private $pusherController;
-    public function __construct(PusherController $pusherController)
-    {
+    public function __construct(PusherController $pusherController) {
         $this->pusherController = $pusherController;
     }
 
     //Page
-    public function petugas() {
+    public function petugas(Request $request) {
+        if ($request->isMethod('post')) {
+            try {
+                $data = Petugas::where('privilege', '!=', "Administrator")->get();
+                return DataTables::of($data)->make(true);
+            } catch (Throwable $th) {
+                return Response()->json([
+                    'message' => 'Terjadi kesalahan saat mendapatkan data petugas'
+                ], 500);
+            }
+        }
         return view('back.data.petugas');
-    }
-
-    //Data
-    public function petugas_data() {
-        $data = Petugas::where('privilege', '!=', "Administrator")->get();
-        return DataTables::of($data)->make(true);
     }
 
     //Tambah
@@ -41,21 +44,25 @@ class PetugasController extends Controller
             'email.unique' => 'Data petugas dengan email ini sudah ada',
             'username.unique' => 'Data petugas dengan username ini sudah ada',
         ]);
-        $data = new Petugas;
-        $data->nama = $request->nama;
-        $data->email = $request->email;
-        $data->username = $request->username;
-        $data->password = Hash::make($request->password);
-        $data->privilege = "Petugas";
-        $data->save();
-        $responses = [
-            'status' => 'success', 
-            'message' => 'Data petugas berhasil disimpan'
-        ];
-        if ($this->pusherController->isInternetConnected()) {
-            $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+        try {
+            $data = new Petugas;
+            $data->nama = $request->nama;
+            $data->email = $request->email;
+            $data->username = $request->username;
+            $data->password = Hash::make($request->password);
+            $data->privilege = "Petugas";
+            $data->save();
+            if ($this->pusherController->isInternetConnected()) {
+                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            }
+            return Response()->json([
+                'message' => 'Data petugas berhasil ditambah'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data petugas'
+            ], 500);
         }
-        return Response()->json($responses); 
     }
 
     //Edit
@@ -66,13 +73,18 @@ class PetugasController extends Controller
             'id.required' => 'Mohon sertakan id petugas',
             'id.exists' => 'Id petugas tidak ditemukan'
         ]);
-        if (Petugas::where('id', $request->id)->value('privilege') != "Administrator") {
-            $data = Petugas::where('id', $request->id)->get();
-            $responses = [
-                'status' => 'success', 
-                'data' => $data
-            ];
-            return Response()->json($responses);
+        try {
+            if (Petugas::where('id', $request->id)->value('privilege') != "Administrator") {
+                $data = Petugas::where('id', $request->id)->get();
+                return Response()->json(['data' => $data]);
+            }
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mendapatkan data petugas'
+            ], 500);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mendapatkan data petugas'
+            ], 500);
         }
     }
     public function petugas_edit(Request $request) {
@@ -85,22 +97,26 @@ class PetugasController extends Controller
             'email.unique' => 'Data petugas dengan email ini sudah ada',
             'username.unique' => 'Data petugas dengan username ini sudah ada',
         ]);
-        $data = Petugas::find($request->id);
-        $data->nama = $request->nama;
-        $data->email = $request->email;
-        $data->username = $request->username;
-        if ($request->filled('password')) {
-            $data->password = Hash::make($request->password);   
+        try {
+            $data = Petugas::find($request->id);
+            $data->nama = $request->nama;
+            $data->email = $request->email;
+            $data->username = $request->username;
+            if ($request->filled('password')) {
+                $data->password = Hash::make($request->password);   
+            }
+            $data->save();
+            if ($this->pusherController->isInternetConnected()) {
+                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            }
+            return Response()->json([
+                'message' => 'Data petugas berhasil diperbarui'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data petugas'
+            ], 500);
         }
-        $data->save();
-        $responses = [
-            'status' => 'success', 
-            'message' => 'Data petugas berhasil diperbarui'
-        ];
-        if ($this->pusherController->isInternetConnected()) {
-            $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
-        }
-        return Response()->json($responses);
     }
 
     //Hapus
@@ -111,16 +127,23 @@ class PetugasController extends Controller
             'id.required' => 'Mohon sertakan id petugas',
             'id.exists' => 'Id petugas tidak ditemukan'
         ]);
-        if (Petugas::where('id', $request->id)->value('privilege') != "Administrator") {
-            Petugas::where('id', $request->id)->delete();
-            if ($this->pusherController->isInternetConnected()) {
-                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+        try {
+            if (Petugas::where('id', $request->id)->value('privilege') != "Administrator") {
+                Petugas::where('id', $request->id)->delete();
+                if ($this->pusherController->isInternetConnected()) {
+                    $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+                }
+                return Response()->json([
+                    'message' => 'Data petugas berhasil dihapus'
+                ]);
             }
-            $responses = [
-                'status' => 'success', 
-                'message' => 'Data petugas berhasil dihapus'
-            ];
-            return Response()->json($responses);
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mendapatkan data petugas'
+            ], 500);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menghapus data petugas'
+            ], 500);
         }
     }
 }

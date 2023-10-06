@@ -39,7 +39,7 @@ class Siswa extends Migration
     public function down()
     {
         Schema::table('siswa', function($table) {
-            $table->dropForeign('siswa_id_kelas_foreign');
+            $table->dropForeign(['kode_kelas']);
         });
         Schema::dropIfExists('siswa');
     }

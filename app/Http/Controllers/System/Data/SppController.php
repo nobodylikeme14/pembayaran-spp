@@ -4,29 +4,39 @@ namespace App\Http\Controllers\System\Data;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\System\PusherController;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use App\Models\Spp;
 use DataTables;
-use Session;
+use Throwable;
 
 class SppController extends Controller
 {
     //Pusher
     private $pusherController;
-    public function __construct(PusherController $pusherController)
-    {
+    public function __construct(PusherController $pusherController) {
         $this->pusherController = $pusherController;
     }
 
     //Page
-    public function spp() {
+    public function spp(Request $request) {
+        if ($request->isMethod('post')) {
+            try {
+                $data = Spp::all()->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'spp' => "SPP ".substr($item->kode_spp, -4),
+                        'nominal' => 'Rp ' . number_format($item->nominal, 0, ',', '.')
+                    ];
+                });
+                return DataTables::of($data)->make(true);
+            } catch (Throwable $th) {
+                return Response()->json([
+                    'message' => 'Terjadi kesalahan saat mendapatkan data SPP'
+                ], 500);
+            }
+        }
         return view('back.data.spp');
-    }
-
-    //Data
-    public function spp_data() {
-        $data = Spp::all();
-        return DataTables::of($data)->make(true);
     }
 
     //Tambah
@@ -37,19 +47,23 @@ class SppController extends Controller
         ],[
             'tahun.unique' => 'Data SPP Tahun '.$request->tahun.' sudah ada'
         ]);
-        $data = new Spp;
-        $data->kode_spp = "SPP-".$request->tahun;
-        $data->tahun = $request->tahun;
-        $data->nominal = $request->nominal;
-        $data->save();
-        $responses = [
-            'status' => 'success', 
-            'message' => 'Data SPP berhasil disimpan'
-        ];
-        if ($this->pusherController->isInternetConnected()) {
-            $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+        try {
+            $data = new Spp;
+            $data->kode_spp = "SPP-".$request->tahun;
+            $data->tahun = $request->tahun;
+            $data->nominal = $request->nominal;
+            $data->save();
+            if ($this->pusherController->isInternetConnected()) {
+                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            }
+            return Response()->json([
+                'message' => 'Data SPP berhasil ditambah'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data SPP'
+            ], 500);
         }
-        return Response()->json($responses); 
     }
 
     //Edit
@@ -60,12 +74,14 @@ class SppController extends Controller
             'id.required' => 'Mohon sertakan id SPP',
             'id.exists' => 'Id SPP tidak ditemukan'
         ]);
-        $data = Spp::where('id', $request->id)->get();
-        $responses = [
-            'status' => 'success', 
-            'data' => $data
-        ];
-        return Response()->json($responses);
+        try {
+            $data = Spp::where('id', $request->id)->get();
+            return Response()->json(['data' => $data]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mendapatkan data SPP'
+            ], 500);
+        }
     }
     public function spp_edit(Request $request) {
         $this->validate($request,[
@@ -74,19 +90,23 @@ class SppController extends Controller
         ],[
             'tahun.unique' => 'Data SPP Tahun '.$request->tahun.' sudah ada'
         ]);
-        $data = Spp::find($request->id);
-        $data->kode_spp = "SPP-".$request->tahun;
-        $data->tahun = $request->tahun;
-        $data->nominal = $request->nominal;
-        $data->save();
-        $responses = [
-            'status' => 'success', 
-            'message' => 'Data SPP berhasil diperbarui'
-        ];
-        if ($this->pusherController->isInternetConnected()) {
-            $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+        try {
+            $data = Spp::find($request->id);
+            $data->kode_spp = "SPP-".$request->tahun;
+            $data->tahun = $request->tahun;
+            $data->nominal = $request->nominal;
+            $data->save();
+            if ($this->pusherController->isInternetConnected()) {
+                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            }
+            return Response()->json([
+                'message' => 'Data SPP berhasil diperbarui'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menyimpan data SPP'
+            ], 500);
         }
-        return Response()->json($responses); 
     }
     
     //Hapus
@@ -97,29 +117,39 @@ class SppController extends Controller
             'id.required' => 'Mohon sertakan id SPP',
             'id.exists' => 'Id SPP tidak ditemukan'
         ]);
-        Spp::where('id', $request->id)->delete();
-        $responses = [
-            'status' => 'success', 
-            'message' => 'Data SPP berhasil dihapus'
-        ];
-        if ($this->pusherController->isInternetConnected()) {
-            $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+        try {
+            Spp::where('id', $request->id)->delete();
+            if ($this->pusherController->isInternetConnected()) {
+                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            }
+            return Response()->json([
+                'message' => 'Data SPP berhasil dihapus'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat menghapus data SPP'
+            ], 500);
         }
-        return Response()->json($responses);
     }
 
     //Hapus semua
     public function spp_hapus_all () {
         if(Spp::count() > 0){
-            Spp::query()->delete();
-            $responses = [
-                'status' => 'success', 
-                'message' => 'Semua data SPP berhasil dihapus'
-            ];
-            if ($this->pusherController->isInternetConnected()) {
-                $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+            try {
+                Schema::disableForeignKeyConstraints();
+                Spp::truncate();
+                Schema::enableForeignKeyConstraints();
+                if ($this->pusherController->isInternetConnected()) {
+                    $this->pusherController->triggerPusherEvent('dashboard-data', 'update-dashboard-data');
+                }
+                return Response()->json([
+                    'message' => 'Semua data SPP berhasil dihapus'
+                ]);
+            } catch (Throwable $th) {
+                return Response()->json([
+                    'message' => 'Terjadi kesalahan saat menghapus data SPP'
+                ], 500);
             }
-            return Response()->json($responses);
         } else {
             return Response()->json([
                 'message' => 'Tidak ada data SPP untuk dihapus'

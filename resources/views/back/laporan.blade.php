@@ -3,7 +3,7 @@
 @section('page_name','Laporan')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/laporan-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/laporan-script.js')}}"></script>
 @endsection
 
 @section('content')

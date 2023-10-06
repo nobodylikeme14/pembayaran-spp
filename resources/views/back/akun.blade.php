@@ -3,13 +3,13 @@
 @section('page_name','Info Akun')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/akun-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/akun-script.js')}}"></script>
 @endsection
 
 @section('content')
 <div class="row">
     <div class="col-lg-6 col-12">
-        <form name="form-data" action="{{route('akun_simpan')}}" class="needs-validation" novalidate>
+        <form name="form-data" action="{{route('akun')}}" class="needs-validation" novalidate>
             <a href="{{route('dashboard')}}" class="btn btn-sm mb-2 pl-0 text-gray-800">
                 <i class="fas fa-arrow-left mr-1"></i>Kembali
             </a>

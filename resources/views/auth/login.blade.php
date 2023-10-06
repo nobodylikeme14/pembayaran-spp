@@ -22,7 +22,7 @@
             placeholder="Password" required>
             <div class="input-group-append border-0">
                 <span class="input-group-text bg-transparent custom-addon show-password-form">
-                    <i class="fas fa-eye mr-1" name="show-password-icon"></i>
+                    <i class="fas fa-eye fa-fw mr-1" name="show-password-icon"></i>
                 </span>
             </div>
         </div>

@@ -2,23 +2,25 @@ $(document).ready(function() {
     //DataTable Init
     const tableElement = $('.table-data');
     var table = tableElement.DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.5/i18n/id.json',
-        },
+        autoWidth: true,
         processing: true,
         serverSide: true,
         ajax: {
             dataType: "JSON",
             type: "POST",
-            url: tableElement.attr("data-url"),
-            beforeSend: function(request) {
-                request.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
-            },
+            url: window.location,
             dataSrc: function(json) {
                 return json.data;
+            },
+            error: function(err, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: err.responseJSON.message
+                });
             }
         },
-        columns: [{
+        columns: [
+            {
                 data: 'numrow',
                 "render": function(data, type, row, meta) {
                     return meta.row + meta.settings._iDisplayStart + 1;
@@ -29,29 +31,23 @@ $(document).ready(function() {
                 data: 'nama_petugas'
             },
             {
-                name: 'nama_siswa',
-                "render": function(data, type, row) {
-                    return row.nama_siswa + "<br>(" + row.kelas_siswa + ")";
-                }
+                name: 'siswa',
+                data: 'siswa'
             },
             {
-                data: 'tanggal_bayar',
-                "render": function(data, type, row) {
-                    return formatDate(data);
-                }
+                name: 'tanggal_bayar',
+                data: 'tanggal_bayar'
             },
             {
                 name: 'spp_dibayar',
-                "render": function(data, type, row) {
-                    return row.bulan_dibayar + " " + row.spp_dibayar.slice(-4); 
-                }
+                data: 'spp_dibayar'
             },
             {
                 name: 'status',
                 "render": function(data, type, row) {
                     return `<span class="text-success text-uppercase font-weight-bold">Lunas</span>`; 
                 }
-            }
+            },
         ],
         drawCallback: function() { 
             table.columns.adjust();
@@ -62,17 +58,6 @@ $(document).ready(function() {
             targets: -1
         }]
     });
-    table.on('order.dt search.dt', function() {
-        let i = 1;
-        table.cells(null, 0, {
-            search: 'applied',
-            order: 'applied'
-        }).every(function(cell) {
-            this.data(i++);
-        });
-    }).draw();
-
-    updateDataHistori();
 
     // Histori Search
     function debounce(func, delay) {
@@ -88,10 +73,12 @@ $(document).ready(function() {
     }
     $('input[name="search"]').on('input', debounce(function() {
         var searchTerm = $(this).val();
-        $('.histori-transaksi-container').empty();
-        $(".not-found-img").hide();
-        $(".loading-animation").show();
         $.ajax({
+            beforeSend: function(){
+                $('.lihat-lainnya, .not-found-img').hide();
+                $('.histori-transaksi-container').empty();
+                $(".loading-animation").show();
+            },
             url: $(this).data('url'),
             method: 'POST',
             data: { search: searchTerm },
@@ -101,7 +88,7 @@ $(document).ready(function() {
             error: function(xhr, status, error) {
                 Swal.fire({
                     icon: "error",
-                    title: "Terjadi kesalahan saat mendapatkan data histori"
+                    title: xhr.responseJSON.message
                 });
             },
             complete: function () {
@@ -116,7 +103,7 @@ $(document).ready(function() {
         <div class="card border-left-danger shadow h-100 pt-2 px-2">
             <div class="d-flex flex-wrap justify-content-between align-items-center px-3 pt-2">
                 <div class="h5 mb-0 font-weight-bold text-gray-800 text-uppercase order-2 order-sm-1">
-                    SPP ${value.bulan_dibayar} ${value.kode_spp.slice(-4)}
+                    ${value.spp_dibayar}
                 </div>
                 <h5 class="order-1 order-sm-2">
                     <span class="badge badge-danger time-badge">
@@ -133,11 +120,11 @@ $(document).ready(function() {
                         </div>
                         <div class="row text-sm font-weight-bold text-secondary mb-1">
                             <div class="col-4 my-auto">Tanggal Bayar</div>
-                            <div class="col-auto my-auto">: ${formatDate(value.tanggal_bayar)}</div>
+                            <div class="col-auto my-auto">: ${value.tanggal_bayar}</div>
                         </div>
                         <div class="row text-sm font-weight-bold text-secondary mb-1">
                             <div class="col-4 my-auto">Jumlah Bayar</div>
-                            <div class="col-auto my-auto">: ${formatCurrency(value.jumlah_bayar)}</div>
+                            <div class="col-auto my-auto">: ${value.jumlah_bayar}</div>
                         </div>
                         <div class="row text-sm font-weight-bold text-secondary mb-1">
                             <div class="col-4 my-auto">Status</div>
@@ -153,22 +140,6 @@ $(document).ready(function() {
             </div>
         </div>
     </section>`;
-    }
-    function formatDate(dateString) {
-        var dateTimeParts = dateString.split(' ');
-        var datePart = dateTimeParts[0];
-        var dateParts = datePart.split('-');
-        var year = parseInt(dateParts[0]);
-        var month = parseInt(dateParts[1]) - 1;
-        var day = parseInt(dateParts[2]);
-        var dateObj = new Date(year, month, day);
-        var options = {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        };
-        var formatter = new Intl.DateTimeFormat('id-ID', options);
-        return formatter.format(dateObj);
     }
     function updateBadgeTime(section, created_at) {
         var timeBadge = section.find('.time-badge');
@@ -193,14 +164,6 @@ $(document).ready(function() {
             $('.not-found-img').show();
         }
     }
-    function formatCurrency(data) {
-        var data = new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(data);
-        return data;
-    }
     function timeHistoriFormat(timestamp) {
         var inputTimestamp = new Date(timestamp).getTime() / 1000;
         var now = Math.floor(new Date().getTime() / 1000);
@@ -209,7 +172,6 @@ $(document).ready(function() {
         var minutes = Math.round(distance / 60);
         var hours = Math.round(distance / 3600);
         var times = '';
-
         if (seconds <= 59) {
             times = seconds + ' detik yang lalu';
         } else if (minutes <= 59) {
@@ -228,30 +190,25 @@ $(document).ready(function() {
         }
         return times;
     }
+    updateDataHistori();
     function updateDataHistori() {
-        const dataContainerEl = $('.data-siswa-container');
-        $('.histori-transaksi-container').empty();
-        $(".not-found-img").hide();
-        $(".loading-animation").show();
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
-            url: dataContainerEl.attr('data-url'),
+            beforeSend: function(){
+                $('.histori-transaksi-container').empty();
+                $(".not-found-img").hide();
+                $(".loading-animation").show();
+            },
+            url: window.location,
             type: "POST", 
             success: function(response) {
                 $.each(response, function (key, value) {
-                    if (key == "dataSiswa") {
-                        $.each(value, function(subKey, subValue) {
-                            dataContainerEl.find('span[name="'+ subKey +'"]').text(subValue);
-                        });
-                    } else if (key == "dataHistori") {
-                        showData(value);
-                    }
+                    showData(value);
                 });
             },
             error: function(xhr, status, error) {
                 Swal.fire({
                     icon: "error",
-                    title: "Terjadi kesalahan saat mendapatkan data histori"
+                    title: xhr.responseJSON.message
                 });
             },
             complete: function () {

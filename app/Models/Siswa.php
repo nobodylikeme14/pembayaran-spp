@@ -18,7 +18,6 @@ class Siswa extends Authenticatable
     protected $table = "siswa";
     
     protected $fillable = [
-        "id_siswa",
         "nisn",
         "nis",
         "nama",
@@ -32,4 +31,8 @@ class Siswa extends Authenticatable
     ];
 
     protected $hidden = [ 'password' ];
+
+    public function pembayaran() {
+        return $this->hasMany(Pembayaran::class, 'id_siswa', 'id');
+    }
 }

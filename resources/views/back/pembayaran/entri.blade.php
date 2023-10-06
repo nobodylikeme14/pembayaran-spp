@@ -3,7 +3,7 @@
 @section('page_name','Entri Pembayaran')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/entri-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/entri-script.js')}}"></script>
 @endsection
 
 @section('content')
@@ -33,9 +33,8 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-data w-100" data-url="{{route('entri_pembayaran_data')}}" 
-                    data-url-detail="{{route('entri_pembayaran_detail')}}" data-url-edit="{{route('entri_pembayaran_edit')}}" 
-                    data-url-hapus="{{route('entri_pembayaran_hapus')}}">
+                    <table class="table table-sm table-data w-100" data-url-detail="{{route('entri_pembayaran_detail')}}" 
+                    data-url-edit="{{route('entri_pembayaran_edit')}}" data-url-hapus="{{route('entri_pembayaran_hapus')}}">
                         <thead class="bg-danger text-white">
                             <tr>
                                 <th>#</th>

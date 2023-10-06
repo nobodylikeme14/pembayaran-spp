@@ -38,6 +38,6 @@ class NotSameAsOldPassword implements Rule
      */
     public function message()
     {
-        return 'Maaf, password baru harus berbeda dengan password lama.';
+        return 'Password baru harus berbeda dengan password lama.';
     }
 }

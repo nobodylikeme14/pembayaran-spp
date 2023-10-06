@@ -1,61 +1,24 @@
 $(document).ready(function() {
-    const formElement = $('form[name="form-login"]');
-    
-    formElement.on('submit', function(event) {
-        event.preventDefault();
-        if (formElement[0].checkValidity() === false) {
-            event.stopPropagation();
-            formElement.addClass('was-validated');
-            return;
+    //Ajax Setup
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
-        var button = formElement.find("button[type=submit]");
-        button.html('Login<i class="fas fa-right-to-bracket fa-flip ml-1"></i>').prop('disabled', true);
-        formElement.find('[name="password"]').attr('type', 'password');
-        formElement.find('i[name="show-password-icon"]').removeClass('fa-eye-slash').addClass('fa-eye');
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-        $.ajax({
-            url: formElement.attr("action"),
-            data: formElement.serialize(),
-            type: "POST",
-            success: function(response) {
-                if (response.status == "success") {
-                    return window.location = response.url;
-                } else {
-                    formElement.find("input[type=password]").val('');
-                    errorAlert(response.message);
-                }
-            },
-            error: function(err) {
-                if (err.status == 422) {
-                    formElement.find('small.text-danger').remove();
-                    $.each(err.responseJSON.errors, function (i, error) {
-                        var errorList = formElement.find('input[name="'+i+'"]').closest(".form-group");
-                        var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
-                        errorList.append($(element).delay(4000).fadeOut(500, function() {
-                            $(this).remove();
-                        }));
-                    });
-                } else if (err.status == 429) {
-                    errorAlert("Terlalu banyak permintaan. Silakan coba lagi nanti.");
-                } else {
-                    errorAlert("Terjadi kesalahan saat melakukan proses login.");
-                }
-            },
-            complete: function() {
-                button.html('Login<i class="fas fa-right-to-bracket ml-1"></i>').prop('disabled', false);
-            }
-        });
     });
 
-    function errorAlert(message) {
-        formElement.find('.alert').remove();
+    //Element
+    const formElement = $('form[name="form-login"]');
+
+    //Show Alert
+    function showAlert(message, type) {
+        var alertType = type === 'success' ? 'success' : 'danger';
         var element = `<div class="alert shadow-sm" role="alert">
             <div class="d-flex justify-content-between">
                 <div class="my-auto pr-2">
-                    <div class="form-text text-danger font-weight-bold">${message}</div>
+                    <div class="form-text text-${alertType} font-weight-bold">${message}</div>
                 </div>
                 <div class="my-auto">
-                    <i class="fas fa-info-circle fa-2x text-danger"></i>
+                    <i class="fas fa-info-circle fa-2x text-${alertType}"></i>
                 </div>
             </div>
         </div>`;
@@ -64,6 +27,7 @@ $(document).ready(function() {
         }));
     }
 
+    //Show Form Password
     $('.show-password-form').on('click', function() {
         var passwordInput = $(this).closest('.input-group').find('input');
         $(this).find('i.fas').toggleClass('fa-eye fa-eye-slash');
@@ -73,5 +37,50 @@ $(document).ready(function() {
         } else {
             passwordInput.attr('type', 'password');
         }
+    });
+    
+    //Form Login Submit
+    formElement.submit(function(event){
+        event.preventDefault();
+        if (formElement[0].checkValidity() === false) {
+            event.stopPropagation();
+            formElement.addClass('was-validated');
+            return;
+        }
+        var button = formElement.find("button[type=submit]");
+        $.ajax({
+            beforeSend: function(){
+                button.html('Login<i class="fas fa-right-to-bracket fa-flip ml-1"></i>').prop('disabled', true);
+                formElement.removeClass('was-validated');
+                formElement.find('.alert, small.text-danger').remove();
+                formElement.find('[name="password"]').attr('type', 'password');
+                formElement.find('i[name="show-password-icon"]').removeClass('fa-eye-slash').addClass('fa-eye');
+            },
+            url: formElement.attr("action"),
+            data: formElement.serialize(),
+            type: "POST", 
+            success: function(response) {
+                return window.location = response.url;
+            },
+            error: function(err) {
+                if (err.status == 422) {
+                    $.each(err.responseJSON.errors, function (i, error) {
+                        var errorList = formElement.find('[name="'+i+'"]').closest(".form-group");
+                        var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
+                        errorList.append($(element).delay(4000).fadeOut(500, function() {
+                            $(this).remove();
+                        }));
+                    });
+                } else {
+                    if (err.status == 401) {
+                        formElement.find("input[type=password]").val('');
+                    }
+                    showAlert(err.responseJSON.message, 'error');
+                }
+            },
+            complete: function() {
+                button.html('Login<i class="fas fa-right-to-bracket ml-1"></i>').prop('disabled', false);
+            }
+        });
     });
 });

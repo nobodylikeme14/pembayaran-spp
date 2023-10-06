@@ -9,62 +9,87 @@ use App\Models\Petugas;
 use App\Models\Kelas;
 use App\Models\Spp;
 use App\Models\Pembayaran;
+use Carbon\Carbon;
+use Throwable;
 
 class DashboardController extends Controller
 {
-    public function dashboard(){
+    public function dashboard(Request $request){
+        if ($request->isMethod('post')) {
+            try {
+                $dataSiswa = Siswa::count();
+                $dataPetugas = Petugas::where('privilege', '!=', "Administrator")->count();
+                $dataKelas = Kelas::count();
+                $dataSpp = Spp::count();
+                $dataEntri = Pembayaran::count();
+                $dataTransaksi = Pembayaran::with(['siswa', 'spp', 'petugas'])->orderBy('created_at', 'desc')
+                ->get()->map(function($item) {
+                    $tanggalBayar = Carbon::parse($item->tanggal_bayar)->locale('id')->isoFormat('DD MMMM Y');
+                    $sppDibayar = "SPP ".$item->bulan_dibayar. " ".substr($item->spp->kode_spp, -4);
+                    $jumlahBayar = 'Rp ' . number_format($item->jumlah_bayar, 0, ',', '.');
+                    return [
+                        'nama_petugas' => $item->petugas->nama,
+                        'nama_siswa' => $item->siswa->nama,
+                        'kelas_siswa' => $item->siswa->kode_kelas,
+                        'tanggal_bayar' => $tanggalBayar,
+                        'spp_dibayar' => $sppDibayar,
+                        'jumlah_bayar' => $jumlahBayar,
+                        'created_at' => $item->created_at
+                    ];
+                });
+                return Response()->json([
+                    'dataSiswa' => $dataSiswa,
+                    'dataPetugas' => $dataPetugas,
+                    'dataKelas' => $dataKelas,
+                    'dataSpp' => $dataSpp,
+                    'dataEntri' => $dataEntri,
+                    'dataHistori' => $dataEntri,
+                    'dataTransaksi' => $dataTransaksi
+                ]);
+            } catch (Throwable $th) {
+                return Response()->json([
+                    'message' => 'Terjadi kesalahan saat mendapatkan data dashboard'
+                ], 500);
+            }
+        }
         return view('back.dashboard');
     }
 
-    public function dashboard_data() {
-        $dataSiswa = Siswa::count();
-        $dataPetugas = Petugas::where('privilege', '!=', "Administrator")->count();
-        $dataKelas = Kelas::count();
-        $dataSpp = Spp::count();
-        $dataEntri = Pembayaran::count();
-        $dataTransaksi = Pembayaran::join('siswa', 'siswa.id', '=', 'pembayaran.id_siswa')
-        ->join('spp', 'spp.id', '=', 'pembayaran.id_spp')
-        ->join('petugas', 'petugas.id', '=', 'pembayaran.id_petugas')
-        ->select(
-            'pembayaran.tanggal_bayar', 'pembayaran.bulan_dibayar',
-            'pembayaran.jumlah_bayar', 'pembayaran.created_at', 
-            'siswa.nama AS nama_siswa', 'siswa.kode_kelas AS kelas_siswa', 
-            'spp.kode_spp', 'petugas.nama AS nama_petugas')
-        ->orderBy('pembayaran.created_at', 'desc')
-        ->get();
-        return Response()->json([
-            'dataSiswa' => $dataSiswa,
-            'dataPetugas' => $dataPetugas,
-            'dataKelas' => $dataKelas,
-            'dataSpp' => $dataSpp,
-            'dataEntri' => $dataEntri,
-            'dataHistori' => $dataEntri,
-            'dataTransaksi' => $dataTransaksi
-        ]);
-    }
-
     public function dashboard_search(Request $request) {
-        $searchTerm = $request->input('search');
-        $query = Pembayaran::join('siswa', 'siswa.id', '=', 'pembayaran.id_siswa')
-            ->join('spp', 'spp.id', '=', 'pembayaran.id_spp')
-            ->join('petugas', 'petugas.id', '=', 'pembayaran.id_petugas')
-            ->select(
-                'pembayaran.tanggal_bayar', 'pembayaran.bulan_dibayar',
-                'pembayaran.jumlah_bayar', 'pembayaran.created_at', 
-                'siswa.nama AS nama_siswa', 'siswa.kode_kelas AS kelas_siswa', 
-                'spp.kode_spp', 'petugas.nama AS nama_petugas')
-            ->orderBy('pembayaran.created_at', 'desc');
-        if ($searchTerm) {
-            $query->where(function($query) use ($searchTerm) {
-                $query->orWhere('siswa.nama', 'LIKE', '%' . $searchTerm . '%')
-                ->orWhere('siswa.kode_kelas', 'LIKE', '%' . $searchTerm . '%')
-                ->orWhere('spp.kode_spp', 'LIKE', '%' . $searchTerm . '%')
-                ->orWhere('petugas.nama', 'LIKE', '%' . $searchTerm . '%')
-                ->orWhere('pembayaran.tanggal_bayar', 'LIKE', '%' . $searchTerm . '%')
-                ->orWhere('pembayaran.bulan_dibayar', 'LIKE', '%' . $searchTerm . '%');
+        try {
+            $searchTerm = $request->input('search');
+            $data = Pembayaran::with(['siswa' ,'spp', 'petugas'])->orderBy('created_at', 'desc')
+            ->when($searchTerm, function ($query) use ($searchTerm) {
+                $query->where(function ($query) use ($searchTerm) {
+                    $query->orWhereHas('siswa', function ($query) use ($searchTerm) {
+                        $query->where('nama', 'LIKE', '%' . $searchTerm . '%')
+                        ->orWhere('kode_kelas', 'LIKE', '%' . $searchTerm . '%');
+                    })->orWhereHas('spp', function ($query) use ($searchTerm) {
+                        $query->where('kode_spp', 'LIKE', '%' . $searchTerm . '%');
+                    })->orWhereHas('petugas', function ($query) use ($searchTerm) {
+                        $query->where('nama', 'LIKE', '%' . $searchTerm . '%');
+                    })->orWhere('tanggal_bayar', 'LIKE', '%' . $searchTerm . '%')
+                    ->orWhere('bulan_dibayar', 'LIKE', '%' . $searchTerm . '%');
+                });
+            })->get()->map(function ($item) {
+                $tanggalBayar = Carbon::parse($item->tanggal_bayar)->locale('id')->isoFormat('DD MMMM Y');
+                $sppDibayar = "SPP ".$item->bulan_dibayar. " ".substr($item->spp->kode_spp, -4);
+                $jumlahBayar = 'Rp ' . number_format($item->jumlah_bayar, 0, ',', '.');
+                return [
+                    'nama_siswa' => $item->siswa->nama,
+                    'kelas_siswa' => $item->siswa->kode_kelas,
+                    'tanggal_bayar' => $tanggalBayar,
+                    'jumlah_bayar' => $jumlahBayar,
+                    'nama_petugas' => $item->petugas->nama,
+                    'spp_dibayar' => $sppDibayar,
+                    'created_at' => $item->created_at
+                ];
             });
+            return response()->json($data);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mendapatkan daftar transaksi'
+            ], 500);
         }
-        $searchResults = $query->get();
-        return response()->json($searchResults);
     }    
 }

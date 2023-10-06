@@ -7,6 +7,7 @@ use App\Rules\NotSameAsOldPassword;
 use Illuminate\Http\Request;
 use App\Models\Petugas;
 use Carbon\Carbon;
+use Throwable;
 use Validator;
 use Session;
 use Cache;
@@ -16,11 +17,10 @@ use Mail;
 use Str;
 use DB;
 
-
 class ResetPasswordController extends Controller
 {
     public function __construct() {
-        $this->middleware('throttle:7,1')->only(['lupa_passwordPost']);
+        $this->middleware('throttle:7,1')->only(['lupa_passwordPost', 'reset_passwordPost']);
     }
     //Lupa Password Page
     public function lupa_password() {
@@ -35,31 +35,35 @@ class ResetPasswordController extends Controller
             'email.email'    => 'Mohon masukkan alamat email yang valid.',
             'email.exists'   => 'Maaf, email yang anda masukkan tidak ditemukan.'
         ]);
-        $emailAddress = $request->email;
-        $throttleKey = 'kirim_link_reset_' . $emailAddress;
-        $otpThrottleTime = 2;
-        $lastAttemptTime = Cache::get($throttleKey);
-        if ($lastAttemptTime && now()->diffInMinutes($lastAttemptTime) < $otpThrottleTime) {
-            return response()->json(['errors' => ['email' => ['Link reset password sudah dikirim. Mohon tunggu 
-            beberapa saat sebelum mengirim ulang.']]], 429);
+        try {
+            $emailAddress = $request->email;
+            $throttleKey = 'kirim_link_reset_' . $emailAddress;
+            $otpThrottleTime = 2;
+            $lastAttemptTime = Cache::get($throttleKey);
+            if ($lastAttemptTime && now()->diffInMinutes($lastAttemptTime) < $otpThrottleTime) {
+                return Response()->json([
+                    'message' => 'Link reset password sudah dikirim. Mohon tunggu beberapa saat sebelum mengirim ulang.'
+                ], 429);
+            }
+            $token = Str::random(120);
+            DB::table('password_resets')->insert([
+                'email'      => $emailAddress,
+                'token'      => $token,
+                'created_at' => Carbon::now()
+            ]);
+            Mail::send('password.email',['token' => $token], function($message) use ($emailAddress) {
+                $message->to($emailAddress);
+                $message->subject('EduCashLog Reset Password Link');
+            });
+            Cache::put($throttleKey, now(), now()->addMinutes($otpThrottleTime));
+            return Response()->json([
+                'message' => 'Kami telah mengirim link reset password ke alamat email Anda. Link reset password berlaku selama 1 jam.'
+            ]);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mengirim link reset password. Silahkan coba beberapa saat lagi.'
+            ], 500);
         }
-        $token = Str::random(120);
-        DB::table('password_resets')->insert([
-            'email'      => $emailAddress,
-            'token'      => $token,
-            'created_at' => Carbon::now()
-        ]);
-        Mail::send('password.email',['token' => $token], function($message) use ($emailAddress) {
-            $message->to($emailAddress);
-            $message->subject('EduCashLog Reset Password Link');
-        });
-        Cache::put($throttleKey, now(), now()->addMinutes($otpThrottleTime));
-        $responses = [
-            'status'    => 'success',
-            'message'   => 'Kami telah mengirim link reset password ke alamat email Anda. Link reset password berlaku selama 1 jam.',
-            'email_address' => $emailAddress
-        ];
-        return Response()->json($responses);
     }
 
     //Reset Password Page
@@ -86,30 +90,34 @@ class ResetPasswordController extends Controller
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',
             'password_confirmation.required' => 'Mohon masukkan konfirmasi password baru.'
         ]);
-        $email = DB::table('password_resets')->where('token', $request->token)->value('email');
-        $newestToken = DB::table('password_resets')->where('email', $request->email)->orderByDesc('created_at')->first();
-        if ($email && $newestToken) {
-            $validityTimestamp = Carbon::parse($newestToken->created_at)->addHour();
-            if (Carbon::now()->lte($validityTimestamp) && $request->token === $newestToken->token) {
-                Petugas::where('email', $request->email)->update([
-                    'password' => Hash::make($request->password),
-                    'updated_at' => Carbon::now()
-                ]);
-                DB::table('password_resets')->where(['email'=> $request->email])->delete();
-                $data = ['email'  => $request->email, 'password'  => $request->password];
-                Session::regenerate();
-                Auth::attempt($data);
-                return response()->json([
-                    'status' => 'success', 
-                    'url' => route('dashboard', [
-                        'message' => 'Password akun anda berhasil direset.'
-                    ])
-                ]);
+        try {
+            $email = DB::table('password_resets')->where('token', $request->token)->value('email');
+            $newestToken = DB::table('password_resets')->where('email', $request->email)->orderByDesc('created_at')->first();
+            if ($email && $newestToken) {
+                $validityTimestamp = Carbon::parse($newestToken->created_at)->addHour();
+                if (Carbon::now()->lte($validityTimestamp) && $request->token === $newestToken->token) {
+                    Petugas::where('email', $request->email)->update([
+                        'password' => Hash::make($request->password),
+                        'updated_at' => Carbon::now()
+                    ]);
+                    DB::table('password_resets')->where(['email'=> $request->email])->delete();
+                    $data = ['email'  => $request->email, 'password'  => $request->password];
+                    Auth::attempt($data);
+                    Session::regenerate();
+                    return response()->json([
+                        'url' => route('dashboard', [
+                            'message' => 'Password akun anda berhasil direset.'
+                        ])
+                    ]);
+                }
             }
+            return Response()->json([
+                'message' => 'Link reset password tidak valid atau sudah kadaluarsa. Silahkan tekan tombol Kembali dan ulangi proses reset password.'
+            ], 500);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat mereset password akun anda. Silahkan coba beberapa saat lagi.'
+            ], 500);
         }
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Link reset password tidak valid atau sudah kadaluarsa. Silahkan tekan tombol Kembali dan ulangi proses reset password.</a>'
-        ]);
     }
 }

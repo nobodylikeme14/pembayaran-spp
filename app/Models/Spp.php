@@ -13,4 +13,8 @@ class Spp extends Model
         "tahun",
         "nominal"
     ];
+
+    public function pembayaran() {
+        return $this->hasMany(Pembayaran::class, 'id_spp', 'id');
+    }
 }

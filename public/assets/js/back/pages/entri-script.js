@@ -5,43 +5,50 @@ $(document).ready(function() {
 
     //DataTable Init
     var table = tableElement.DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.5/i18n/id.json',
-        },
+        autoWidth: true,
         processing: true,
         serverSide: true,
         ajax: {
             dataType: "JSON",
             type: "POST",
-            url: tableElement.attr("data-url"),
-            beforeSend: function(request) {
-                request.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
-            },
+            url: window.location,
             dataSrc: function(json) {
                 return json.data;
+            },
+            error: function(err, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: err.responseJSON.message
+                });
             }
         },
-        columns: [{
+        columns: [
+            {
                 data: 'numrow',
                 "render": function(data, type, row, meta) {
                     return meta.row + meta.settings._iDisplayStart + 1;
                 }
             },
             {
-                data: 'tahun',
-                "render": function(data, type, row) {
-                    return "Tahun " + data;
-                }
+                name: 'nama_petugas',
+                data: 'nama_petugas'
             },
             {
-                data: 'nominal',
+                name: 'siswa',
+                data: 'siswa'
+            },
+            {
+                name: 'tanggal_bayar',
+                data: 'tanggal_bayar'
+            },
+            {
+                name: 'spp_dibayar',
+                data: 'spp_dibayar'
+            },
+            {
+                name: 'status',
                 "render": function(data, type, row) {
-                    var data = new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0
-                    }).format(data);
-                    return data;
+                    return `<span class="text-success text-uppercase font-weight-bold">Lunas</span>`; 
                 }
             },
             {
@@ -67,20 +74,11 @@ $(document).ready(function() {
             targets: -1
         }]
     });
-    table.on('order.dt search.dt', function() {
-        let i = 1;
-        table.cells(null, 0, {
-            search: 'applied',
-            order: 'applied'
-        }).every(function(cell) {
-            this.data(i++);
-        });
-    }).draw();
     
     //Add data button
     $('button[name="add-data"]').on('click', function() {
         var formAction = $(this).attr('data-action');
-        formElement.find('.form-title').text("Tambah Data SPP");
+        formElement.find('.form-title').text("Tambah Entri Pembayaran");
         formElement.attr('action', formAction);
         $('#dataTab button[data-target="#form-tab"]').tab('show');
     });
@@ -93,6 +91,7 @@ $(document).ready(function() {
     //On hidden form tab
     $('button[data-target="#form-tab"]').on('hidden.bs.tab', function () {
         $('#form-tab').find('form')[0].reset();
+        $('.selectpicker').selectpicker('val', '');
         formElement.removeClass('was-validated');
     });
 
@@ -105,26 +104,26 @@ $(document).ready(function() {
             return;
         }
         var button = formElement.find("button[type=submit]");
-        button.html('Simpan<i class="fas fa-floppy-disk fa-flip ml-2"></i>').prop('disabled', true);
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('Simpan<i class="fas fa-floppy-disk fa-flip ml-2"></i>').prop('disabled', true);
+                formElement.removeClass('was-validated');
+                formElement.find('small.text-danger').remove();
+            },
             url: formElement.attr("action"),
             data: formElement.serialize(),
             type: "POST", 
             success: function(response) {
-                if (response.status == "success") {
-                    Swal.fire({
-                        icon: response.status,
-                        title: response.message
-                    });
-                    $('#dataTab button[data-target="#data-tab"]').tab('show');
-                    table.ajax.reload();
-                }
+                Swal.fire({
+                    icon: 'success',
+                    title: response.message
+                });
+                $('#dataTab button[data-target="#data-tab"]').tab('show');
+                table.ajax.reload();
             },
-            error: function(xhr, status, error) {
-                if (xhr.status == 422) {
-                    formElement.find('small.text-danger').remove();
-                    $.each(xhr.responseJSON.errors, function (i, error) {
+            error: function(err, status, error) {
+                if (err.status == 422) {
+                    $.each(err.responseJSON.errors, function (i, error) {
                         var errorList = formElement.find('[name="'+i+'"]').closest(".form-group");
                         var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
                         errorList.append($(element).delay(4000).fadeOut(500, function() {
@@ -132,10 +131,17 @@ $(document).ready(function() {
                         }));
                     });
                 } else {
-                    Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat proses menyimpan data spp"
-                    });
+                    if (err.responseText.includes('1062 Duplicate entry')) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: "Maaf, pembayaran SPP untuk bulan ini sudah lunas"
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: err.responseJSON.message
+                        });
+                    }
                 }
             },
             complete: function() {
@@ -149,22 +155,26 @@ $(document).ready(function() {
         var button = $(this);
         var url = tableElement.attr('data-url-detail');
         var dataId = $(this).attr('data-id');
-        button.html('<i class="fas fa-edit fa-flip mr-1"></i>Edit').prop('disabled', true);
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('<i class="fas fa-edit fa-flip mr-1"></i>Edit').prop('disabled', true);
+            },
             url: url,
             data: { id: dataId },
             type: "POST", 
             success: function(response) {
-                if (response.status == "success") {
-                    var formAction = tableElement.attr('data-url-edit');
-                    formElement.find('.form-title').text("Edit Data SPP");
-                    formElement.attr('action', formAction);
-                    $.each(response.data[0], function (key, value) {
-                        formElement.find('[name="'+key+'"]').val(value);
-                    });
-                    $('#dataTab button[data-target="#form-tab"]').tab('show');
-                }
+                var formAction = tableElement.attr('data-url-edit');
+                formElement.find('.form-title').text("Edit Entri Pembayaran");
+                formElement.attr('action', formAction);
+                $.each(response.data[0], function (key, value) {
+                    if (key == "id_siswa") {
+                        formElement.find('.selectpicker[name="siswa"]').selectpicker('val', value);
+                    } else if (key == "id_spp") {
+                        formElement.find('.selectpicker[name="spp"]').selectpicker('val', value);
+                    }
+                    formElement.find('[name="'+key+'"]').val(value);
+                });
+                $('#dataTab button[data-target="#form-tab"]').tab('show');
             },
             error: function(err) {
                 if (err.status == 422) {
@@ -177,8 +187,8 @@ $(document).ready(function() {
                     }
                 } else {
                     Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat mendapatkan data SPP"
+                        icon: 'error',
+                        title: err.responseJSON.message
                     });
                 }
             },
@@ -195,8 +205,7 @@ $(document).ready(function() {
         var dataId = $(this).attr('data-id');
         Swal.fire({
             icon: 'question',
-            title: 'Anda yakin ingin menghapus data SPP ini ?',
-            text: 'Semua entri pembayaran untuk SPP ini juga akan terhapus',
+            title: 'Anda yakin ingin menghapus entri pembayaran ini ?',
             confirmButtonText: 'Hapus',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
@@ -204,20 +213,19 @@ $(document).ready(function() {
             showConfirmButton: true,
             showCancelButton: true,
             preConfirm: () => {
-                button.html('<i class="fas fa-trash fa-flip mr-1"></i>Hapus').prop('disabled', true);
-                $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
                 $.ajax({
+                    beforeSend: function(){
+                        button.html('<i class="fas fa-trash fa-flip mr-1"></i>Hapus').prop('disabled', true);
+                    },
                     url: url,
                     data: { id: dataId },
                     type: "POST", 
                     success: function(response) {
-                        if (response.status == "success") {
-                            table.ajax.reload();
-                            Swal.fire({
-                                icon: response.status,
-                                title: response.message
-                            });
-                        }
+                        table.ajax.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message
+                        });
                     },
                     error: function(err) {
                         if (err.status == 422) {
@@ -230,8 +238,8 @@ $(document).ready(function() {
                             }
                         } else {
                             Swal.fire({
-                                icon: "error",
-                                title: "Terjadi kesalahan saat menghapus data SPP"
+                                icon: 'error',
+                                title: err.responseJSON.message
                             });
                         }
                     },
@@ -249,8 +257,7 @@ $(document).ready(function() {
         var url = button.attr('data-url');
         Swal.fire({
             icon: 'question',
-            title: 'Anda yakin ingin menghapus semua data SPP ?',
-            text: 'Semua entri pembayaran juga akan terhapus',
+            title: 'Anda yakin ingin menghapus semua entri pembayaran ?',
             confirmButtonText: 'Hapus Semua',
             cancelButtonText: 'Cancel',
             reverseButtons: true,
@@ -258,32 +265,24 @@ $(document).ready(function() {
             showConfirmButton: true,
             showCancelButton: true,
             preConfirm: () => {
-                button.html('<i class="fas fa-trash fa-flip mr-2"></i>Hapus Semua').prop('disabled', true);
-                $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
                 $.ajax({
+                    beforeSend: function(){
+                        button.html('<i class="fas fa-trash fa-flip mr-2"></i>Hapus Semua').prop('disabled', true);
+                    },
                     url: url,
                     type: "POST", 
                     success: function(response) {
-                        if (response.status == "success") {
-                            table.ajax.reload();
-                            Swal.fire({
-                                icon: response.status,
-                                title: response.message
-                            });
-                        }
+                        table.ajax.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message
+                        });
                     },
                     error: function(err) {
-                        if (err.status == 404) {
-                            Swal.fire({
-                                icon: "error",
-                                title: err.responseJSON.message
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Terjadi kesalahan saat menghapus data SPP"
-                            });
-                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: err.responseJSON.message
+                        });
                     },
                     complete: function() {
                         button.html('<i class="fas fa-trash mr-2"></i>Hapus Semua').prop('disabled', false);

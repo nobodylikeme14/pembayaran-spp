@@ -3,7 +3,7 @@
 @section('page_name','Data SPP')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/spp-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/spp-script.js')}}"></script>
 @endsection
 
 @section('content')
@@ -31,9 +31,8 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-data w-100" data-url="{{route('spp_data')}}" 
-                    data-url-detail="{{route('spp_detail')}}" data-url-edit="{{route('spp_edit')}}" 
-                    data-url-hapus="{{route('spp_hapus')}}">
+                    <table class="table table-sm table-data w-100" data-url-detail="{{route('spp_detail')}}" 
+                    data-url-edit="{{route('spp_edit')}}" data-url-hapus="{{route('spp_hapus')}}">
                         <thead class="bg-danger text-white">
                             <tr>
                                 <th>#</th>

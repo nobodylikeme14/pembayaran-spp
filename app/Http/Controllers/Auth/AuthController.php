@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Throwable;
 use Session;
 use Auth;
 
@@ -23,34 +24,30 @@ class AuthController extends Controller
             'username.required' => 'Mohon masukkan email / username.',
             'password.required' => 'Mohon masukkan password.',
         ]);
-        $loginWith = filter_var($req->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-        $data = [$loginWith  => $req->input('username'), 'password'  => $req->input('password')];
-        if (Auth::guard('petugas')->attempt($data)) {
-            Session::regenerate();
-            if (Auth::guard('petugas')->user()->privilege == "Administrator") {
-                $responses = [ 
-                    'status' => 'success', 
-                    'url' => route('dashboard')
-                ];
+        try {
+            $loginWith = filter_var($req->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+            $data = [$loginWith  => $req->input('username'), 'password'  => $req->input('password')];
+            if (Auth::guard('petugas')->attempt($data)) {
+                Session::regenerate();
+                if (Auth::user()->privilege == "Administrator") {
+                    $respons = ['url' => route('dashboard')];
+                } else {
+                    $respons = ['url' => route('entri_pembayaran')];
+                }
+            } elseif (Auth::guard('siswa')->attempt($data)) {
+                Session::regenerate();
+                $respons = ['url' => route('histori_pembayaran')];
             } else {
-                $responses = [ 
-                    'status' => 'success', 
-                    'url' => route('entri_pembayaran')
-                ];
+                return Response()->json([
+                    'message' => 'Email / Username atau Password anda salah.'
+                ], 401);
             }
-        } elseif (Auth::guard('siswa')->attempt($data)) {
-            Session::regenerate();
-            $responses = [ 
-                'status' => 'success', 
-                'url' => route('histori_pembayaran')
-            ];
-        } else {
-            $responses = [
-                'status' => 'error', 
-                'message' => 'Email / username atau password salah.'
-            ];
+            return Response()->json($respons);
+        } catch (Throwable $th) {
+            return Response()->json([
+                'message' => 'Terjadi kesalahan saat melakukan proses login. Silahkan coba beberapa saat lagi.'
+            ], 500);
         }
-        return Response()->json($responses);
     }
     public function logout() {
         Auth::logout();

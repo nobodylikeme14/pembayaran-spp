@@ -3,12 +3,12 @@
 @section('page_name', 'Histori Pembayaran')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/histori-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/histori-script.js')}}"></script>
 @endsection
 
 @section('content')
 @if(Auth::user()->privilege == "Siswa")
-<div class="row data-siswa-container" data-url="{{route('histori_pembayaran_data')}}">
+<div class="row data-siswa-container">
     <div class="col-lg-3 col-12 mb-4">
         <div class="card border-left-primary shadow h-100 py-2">
             <div class="card-body">
@@ -18,7 +18,7 @@
                             Nama Siswa
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <span name="nama"></span>
+                            {{Auth::user()->nama}}
                         </div>
                     </div>
                 </div>
@@ -34,7 +34,7 @@
                             Kelas Siswa
                         </div>
                         <div class="h5 mb-0 font-weight-bold text-gray-800">
-                            <span name="kelas"></span>
+                            {{Auth::user()->kode_kelas}}
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col-auto">
                                 <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
-                                    <span name="nisn"></span>
+                                    {{Auth::user()->nisn}}
                                 </div>
                             </div>
                         </div>
@@ -72,7 +72,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col-auto">
                                 <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
-                                    <span name="nis"></span>
+                                    {{Auth::user()->nis}}
                                 </div>
                             </div>
                         </div>
@@ -94,13 +94,13 @@
         </div>
         <div class="loading-animation mt-2 mb-4">
             <div class="text-center my-2">
-                <div class="spinner-grow text-danger" style="width: 4rem; height: 4rem;" role="status"></div>
+                <i class="fas fa-fan fa-spin fa-4x mt-5 text-danger"></i>
             </div>
         </div>
         <div class="row histori-transaksi-container"></div>
         <div class="not-found-img">
             <div class="text-center my-3">
-                <img src="{{asset('assets/img/undraw_not_found_60pq.svg')}}" width="200px" alt="No Data Image">
+                <img src="{{asset('assets/img/not-found-img.svg')}}" width="200px" alt="No Data Image">
                 <div class="mt-3">
                     <h3>Tidak ada transaksi yang ditemukan</h3>
                 </div>
@@ -112,7 +112,7 @@
 <div class="card shadow mb-4">
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-sm table-data w-100" data-url="{{route('entri_pembayaran_data')}}">
+            <table class="table table-sm table-data w-100">
                 <thead class="bg-danger text-white">
                     <tr>
                         <th>#</th>

@@ -41,14 +41,12 @@ Route::middleware('guest')->group(function () {
 Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator']], function (){
     //Dashboard
     Route::prefix('/dashboard')->group(function () {
-        Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
-        Route::post('/', [DashboardController::class, 'dashboard_data'])->name('dashboard_data');
+        Route::match(['get', 'post'], '/', [DashboardController::class, 'dashboard'])->name('dashboard');
         Route::post('/search', [DashboardController::class, 'dashboard_search'])->name('dashboard_search');
     });
     //Data SPP
     Route::prefix('/data-spp')->group(function () {
-        Route::get('/', [SppController::class, 'spp'])->name('spp');
-        Route::post('/', [SppController::class, 'spp_data'])->name('spp_data');
+        Route::match(['get', 'post'], '/', [SppController::class, 'spp'])->name('spp');
         Route::post('/tambah', [SppController::class, 'spp_tambah'])->name('spp_tambah');
         Route::post('/detail', [SppController::class, 'spp_detail'])->name('spp_detail');
         Route::post('/edit', [SppController::class, 'spp_edit'])->name('spp_edit');
@@ -57,8 +55,7 @@ Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator']], 
     });
     //Data Kelas
     Route::prefix('/data-kelas')->group(function () {
-        Route::get('/', [KelasController::class, 'kelas'])->name('kelas');
-        Route::post('/', [KelasController::class, 'kelas_data'])->name('kelas_data');
+        Route::match(['get', 'post'], '/', [KelasController::class, 'kelas'])->name('kelas');
         Route::post('/tambah', [KelasController::class, 'kelas_tambah'])->name('kelas_tambah');
         Route::post('/detail', [KelasController::class, 'kelas_detail'])->name('kelas_detail');
         Route::post('/edit', [KelasController::class, 'kelas_edit'])->name('kelas_edit');
@@ -67,8 +64,7 @@ Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator']], 
     });
     //Data Siswa
     Route::prefix('/data-siswa')->group(function () {
-        Route::get('/', [SiswaController::class, 'siswa'])->name('siswa');
-        Route::post('/', [SiswaController::class, 'siswa_data'])->name('siswa_data');
+        Route::match(['get', 'post'], '/', [SiswaController::class, 'siswa'])->name('siswa');
         Route::post('/tambah', [SiswaController::class, 'siswa_tambah'])->name('siswa_tambah');
         Route::post('/detail', [SiswaController::class, 'siswa_detail'])->name('siswa_detail');
         Route::post('/edit', [SiswaController::class, 'siswa_edit'])->name('siswa_edit');
@@ -79,8 +75,7 @@ Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator']], 
     });
     //Data Petugas
     Route::prefix('/data-petugas')->group(function () {
-        Route::get('/', [PetugasController::class, 'petugas'])->name('petugas');
-        Route::post('/', [PetugasController::class, 'petugas_data'])->name('petugas_data');
+        Route::match(['get', 'post'], '/', [PetugasController::class, 'petugas'])->name('petugas');
         Route::post('/tambah', [PetugasController::class, 'petugas_tambah'])->name('petugas_tambah');
         Route::post('/detail', [PetugasController::class, 'petugas_detail'])->name('petugas_detail');
         Route::post('/edit', [PetugasController::class, 'petugas_edit'])->name('petugas_edit');
@@ -91,23 +86,16 @@ Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator']], 
         Route::post('/hapus-all', [EntriController::class, 'entri_pembayaran_hapus_all'])->name('entri_pembayaran_hapus_all');
     });
     //Laporan
-    Route::prefix('/laporan')->group(function () {
-        Route::get('/', [LaporanController::class, 'laporan'])->name('laporan');
-        Route::post('/', [LaporanController::class, 'laporan_cetak'])->name('laporan_cetak');
-    });
+    Route::match(['get', 'post'], '/laporan', [LaporanController::class, 'laporan'])->name('laporan');
     //Info Akun
-    Route::prefix('/akun')->group(function () {
-        Route::get('/', [AkunController::class, 'akun'])->name('akun');
-        Route::post('/', [AkunController::class, 'akun_simpan'])->name('akun_simpan');
-    });
+    Route::match(['get', 'post'], '/akun', [AkunController::class, 'akun'])->name('akun');
 });
 
 /*==> ROUTE PRIVILEGE:ADMINISTRATOR, PETUGAS <==*/
 Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator,Petugas']], function (){
     //Entri Pembayaran
     Route::prefix('/entri-pembayaran')->group(function () {
-        Route::get('/', [EntriController::class, 'entri_pembayaran'])->name('entri_pembayaran');
-        Route::post('/', [EntriController::class, 'entri_pembayaran_data'])->name('entri_pembayaran_data');
+        Route::match(['get', 'post'], '/', [EntriController::class, 'entri_pembayaran'])->name('entri_pembayaran');
         Route::post('/tambah', [EntriController::class, 'entri_pembayaran_tambah'])->name('entri_pembayaran_tambah');
         Route::post('/detail', [EntriController::class, 'entri_pembayaran_detail'])->name('entri_pembayaran_detail');
         Route::post('/edit', [EntriController::class, 'entri_pembayaran_edit'])->name('entri_pembayaran_edit');
@@ -118,8 +106,7 @@ Route::group(['middleware' => ['auth:petugas','PrivilegeCheck:Administrator,Petu
 /*==> ROUTE PRIVILEGE:ADMINISTRATOR, PETUGAS, SISWA <==*/
 Route::group(['middleware' => ['auth:petugas,siswa','PrivilegeCheck:Administrator,Petugas,Siswa']], function (){
     Route::prefix('/histori-pembayaran')->group(function () {
-        Route::get('/', [HistoriController::class, 'histori_pembayaran'])->name('histori_pembayaran');
-        Route::post('/', [HistoriController::class, 'histori_pembayaran_data'])->name('histori_pembayaran_data');
+        Route::match(['get', 'post'], '/', [HistoriController::class, 'histori_pembayaran'])->name('histori_pembayaran');
         Route::post('/search', [HistoriController::class, 'histori_pembayaran_search'])->name('histori_pembayaran_search');
     });
 });

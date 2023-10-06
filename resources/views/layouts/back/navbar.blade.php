@@ -15,7 +15,7 @@
                 <span class="mr-2 d-none d-sm-inline text-gray-600 small font-weight-bold">
                     {{ Auth::user()->nama }}
                 </span>
-                <img class="img-profile rounded-circle my-auto" src="{{asset('assets/img/undraw_profile_pic_ic5t.svg')}}">
+                <img class="img-profile rounded-circle my-auto" src="{{asset('assets/img/profile-pic.svg')}}">
             </a>
             <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="userDropdown">
                 @if(Auth::user()->privilege == "Administrator")

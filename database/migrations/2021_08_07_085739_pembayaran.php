@@ -40,9 +40,9 @@ class Pembayaran extends Migration
     public function down()
     {
         Schema::table('pembayaran', function($table) {
-            $table->dropForeign('pembayaran_nisn_foreign');
-            $table->dropForeign('pembayaran_id_spp_foreign');
-            $table->dropForeign('pembayaran_id_petugas_foreign');
+            $table->dropForeign(['id_siswa']);
+            $table->dropForeign(['id_petugas']);
+            $table->dropForeign(['id_spp']);
         });
         Schema::dropIfExists('pembayaran');
     }

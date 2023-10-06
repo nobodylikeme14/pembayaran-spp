@@ -3,7 +3,7 @@
 @section('page_name','Data Petugas')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/petugas-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/petugas-script.js')}}"></script>
 @endsection
 
 @section('content')
@@ -27,9 +27,8 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-data w-100" data-url="{{route('petugas_data')}}" 
-                    data-url-detail="{{route('petugas_detail')}}" data-url-edit="{{route('petugas_edit')}}" 
-                    data-url-hapus="{{route('petugas_hapus')}}">
+                    <table class="table table-sm table-data w-100" data-url-detail="{{route('petugas_detail')}}" 
+                    data-url-edit="{{route('petugas_edit')}}" data-url-hapus="{{route('petugas_hapus')}}">
                         <thead class="bg-danger text-white">
                             <tr>
                                 <th>#</th>

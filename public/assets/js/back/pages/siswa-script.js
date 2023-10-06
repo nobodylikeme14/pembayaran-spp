@@ -5,23 +5,25 @@ $(document).ready(function() {
 
     //DataTable Init
     var table = tableElement.DataTable({
-        language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.5/i18n/id.json',
-        },
+        autoWidth: true,
         processing: true,
         serverSide: true,
         ajax: {
             dataType: "JSON",
             type: "POST",
-            url: tableElement.attr("data-url"),
-            beforeSend: function(request) {
-                request.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
-            },
+            url: window.location,
             dataSrc: function(json) {
                 return json.data;
+            },
+            error: function(err, status, error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: err.responseJSON.message
+                });
             }
         },
-        columns: [{
+        columns: [
+            {
                 data: 'numrow',
                 "render": function(data, type, row, meta) {
                     return meta.row + meta.settings._iDisplayStart + 1;
@@ -62,15 +64,6 @@ $(document).ready(function() {
             targets: -1
         }]
     });
-    table.on('order.dt search.dt', function() {
-        let i = 1;
-        table.cells(null, 0, {
-            search: 'applied',
-            order: 'applied'
-        }).every(function(cell) {
-            this.data(i++);
-        });
-    }).draw();
     
     //Add data button
     $('button[name="add-data"]').on('click', function() {
@@ -104,26 +97,26 @@ $(document).ready(function() {
             return;
         }
         var button = formElement.find("button[type=submit]");
-        button.html('Simpan<i class="fas fa-floppy-disk fa-flip ml-2"></i>').prop('disabled', true);
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('Simpan<i class="fas fa-floppy-disk fa-flip ml-2"></i>').prop('disabled', true);
+                formElement.removeClass('was-validated');
+                formElement.find('small.text-danger').remove();
+            },
             url: formElement.attr("action"),
             data: formElement.serialize(),
             type: "POST", 
             success: function(response) {
-                if (response.status == "success") {
-                    Swal.fire({
-                        icon: response.status,
-                        title: response.message
-                    });
-                    $('#dataTab button[data-target="#data-tab"]').tab('show');
-                    table.ajax.reload();
-                }
+                Swal.fire({
+                    icon: 'success',
+                    title: response.message
+                });
+                $('#dataTab button[data-target="#data-tab"]').tab('show');
+                table.ajax.reload();
             },
-            error: function(xhr, status, error) {
-                if (xhr.status == 422) {
-                    formElement.find('small.text-danger').remove();
-                    $.each(xhr.responseJSON.errors, function (i, error) {
+            error: function(err, status, error) {
+                if (err.status == 422) {
+                    $.each(err.responseJSON.errors, function (i, error) {
                         var errorList = formElement.find('[name="'+i+'"]').closest(".form-group");
                         var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
                         errorList.append($(element).delay(4000).fadeOut(500, function() {
@@ -132,8 +125,8 @@ $(document).ready(function() {
                     });
                 } else {
                     Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat proses menyimpan data siswa"
+                        icon: 'error',
+                        title: err.responseJSON.message
                     });
                 }
             },
@@ -148,26 +141,25 @@ $(document).ready(function() {
         var button = $(this);
         var url = tableElement.attr('data-url-detail');
         var dataId = $(this).attr('data-id');
-        button.html('<i class="fas fa-edit fa-flip mr-1"></i>Edit').prop('disabled', true);
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('<i class="fas fa-edit fa-flip mr-1"></i>Edit').prop('disabled', true);
+            },
             url: url,
             data: { id: dataId },
             type: "POST", 
             success: function(response) {
-                if (response.status == "success") {
-                    var formAction = tableElement.attr('data-url-edit');
-                    formElement.find('.form-title').text("Edit Data Siswa");
-                    formElement.attr('action', formAction);
-                    $.each(response.data[0], function (key, value) {
-                        if (key == "kode_kelas") {
-                            formElement.find('.selectpicker').selectpicker('val', value);
-                        } else {
-                            formElement.find('[name="'+key+'"]').val(value);
-                        }
-                    });
-                    $('#dataTab button[data-target="#form-tab"]').tab('show');
-                }
+                var formAction = tableElement.attr('data-url-edit');
+                formElement.find('.form-title').text("Edit Data Siswa");
+                formElement.attr('action', formAction);
+                $.each(response.data[0], function (key, value) {
+                    if (key == "kode_kelas") {
+                        formElement.find('.selectpicker').selectpicker('val', value);
+                    } else {
+                        formElement.find('[name="'+key+'"]').val(value);
+                    }
+                });
+                $('#dataTab button[data-target="#form-tab"]').tab('show');
             },
             error: function(err) {
                 if (err.status == 422) {
@@ -180,8 +172,8 @@ $(document).ready(function() {
                     }
                 } else {
                     Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat mendapatkan data siswa"
+                        icon: 'error',
+                        title: err.responseJSON.message
                     });
                 }
             },
@@ -207,20 +199,19 @@ $(document).ready(function() {
             showConfirmButton: true,
             showCancelButton: true,
             preConfirm: () => {
-                button.html('<i class="fas fa-trash fa-flip mr-1"></i>Hapus').prop('disabled', true);
-                $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
                 $.ajax({
+                    beforeSend: function(){
+                        button.html('<i class="fas fa-trash fa-flip mr-1"></i>Hapus').prop('disabled', true);
+                    },
                     url: url,
                     data: { id: dataId },
                     type: "POST", 
                     success: function(response) {
-                        if (response.status == "success") {
-                            table.ajax.reload();
-                            Swal.fire({
-                                icon: response.status,
-                                title: response.message
-                            });
-                        }
+                        table.ajax.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message
+                        });
                     },
                     error: function(err) {
                         if (err.status == 422) {
@@ -233,8 +224,8 @@ $(document).ready(function() {
                             }
                         } else {
                             Swal.fire({
-                                icon: "error",
-                                title: "Terjadi kesalahan saat menghapus data siswa"
+                                icon: 'error',
+                                title: err.responseJSON.message
                             });
                         }
                     },
@@ -260,9 +251,12 @@ $(document).ready(function() {
         }
         var url = form.attr('action');
         var button = form.find("button[type=submit]");
-        button.html('Export<i class="fas fa-file-export fa-flip ml-2"></i>').prop("disabled", true );
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('Export<i class="fas fa-file-export fa-flip ml-2"></i>').prop("disabled", true );
+                form.removeClass('was-validated');
+                form.find('small.text-danger').remove();
+            },
             type: 'POST',
             url: url,
             data: form.serialize(),
@@ -275,7 +269,6 @@ $(document).ready(function() {
             },
             error: function (err) {
                 if (err.status == 422) {
-                    form.find('small.text-danger').remove();
                     $.each(err.responseJSON.errors, function (i, error) {
                         var errorList = form.find('[name="'+i+'"]').closest(".form-group");
                         var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
@@ -283,15 +276,10 @@ $(document).ready(function() {
                             $(this).remove();
                         }));
                     });
-                } else if (err.status == 404) {
-                    Swal.fire({
-                        icon: "error",
-                        title: err.responseJSON.message
-                    });
                 } else {
                     Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat mengexport data siswa"
+                        icon: 'error',
+                        title: err.responseJSON.message
                     });
                 }
             },
@@ -324,9 +312,12 @@ $(document).ready(function() {
         }
         var url = form.attr('action');
         var button = form.find("button[type=submit]");
-        button.html('Import<i class="fas fa-file-import fa-flip ml-2"></i>').prop("disabled", true );
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('Import<i class="fas fa-file-import fa-flip ml-2"></i>').prop("disabled", true );
+                form.find('small.text-danger').remove();
+                form.removeClass('was-validated');
+            },
             type: 'POST',
             url: url,
             data: formData,
@@ -334,7 +325,7 @@ $(document).ready(function() {
             contentType: false,
             success: function(response) {
                 Swal.fire({
-                    icon: response.status,
+                    icon: 'success',
                     title: response.message
                 });
                 $('#dataTab button[data-target="#data-tab"]').tab('show');
@@ -342,7 +333,6 @@ $(document).ready(function() {
             },
             error: function (err) {
                 if (err.status == 422) {
-                    form.find('small.text-danger').remove();
                     $.each(err.responseJSON.errors, function (i, error) {
                         var errorList = form.find('[name="'+i+'"]').closest(".custom-file");
                         var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
@@ -352,8 +342,8 @@ $(document).ready(function() {
                     });
                 } else {
                     Swal.fire({
-                        icon: "error",
-                        title: "Terjadi kesalahan saat mengimport data siswa"
+                        icon: 'error',
+                        title: err.responseJSON.message
                     });
                 }
             },
@@ -378,32 +368,24 @@ $(document).ready(function() {
             showConfirmButton: true,
             showCancelButton: true,
             preConfirm: () => {
-                button.html('<i class="fas fa-trash fa-flip mr-2"></i>Hapus Semua').prop('disabled', true);
-                $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
                 $.ajax({
+                    beforeSend: function(){
+                        button.html('<i class="fas fa-trash fa-flip mr-2"></i>Hapus Semua').prop('disabled', true);
+                    },
                     url: url,
                     type: "POST", 
                     success: function(response) {
-                        if (response.status == "success") {
-                            table.ajax.reload();
-                            Swal.fire({
-                                icon: response.status,
-                                title: response.message
-                            });
-                        }
+                        table.ajax.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message
+                        });
                     },
                     error: function(err) {
-                        if (err.status == 404) {
-                            Swal.fire({
-                                icon: "error",
-                                title: err.responseJSON.message
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: "error",
-                                title: "Terjadi kesalahan saat menghapus data siswa"
-                            });
-                        }
+                        Swal.fire({
+                            icon: "error",
+                            title: err.responseJSON.message
+                        });
                     },
                     complete: function() {
                         button.html('<i class="fas fa-trash mr-2"></i>Hapus Semua').prop('disabled', false);

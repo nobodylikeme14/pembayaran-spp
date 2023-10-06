@@ -20,8 +20,7 @@ class SiswaImport implements ToModel, WithStartRow
     public function model(array $row)
     {
         $this->importedRowCount++;
-        $email_siswa = str_replace(' ', '', substr(strtolower($row[3]), -5).substr($row[1], -4).'@siswa.com');
-        $username = substr($email_siswa, 0, -10);
+        $username = strtolower(substr(str_replace(' ', '', $row[3]), 0, 5) . substr($row[1], -7));
         return new Siswa([
             'nisn' => $row[1],
             'nis' => $row[2],
@@ -29,7 +28,7 @@ class SiswaImport implements ToModel, WithStartRow
             'kode_kelas' => $row[4],
             'nomor_hp' => $row[5],
             'alamat' => $row[6],
-            'email' => $email_siswa,
+            'email' => $username."@educashlog.com",
             'username' => $username,
             'password' => Hash::make('Siswa#'.$row[1]),
             'privilege' => "Siswa"

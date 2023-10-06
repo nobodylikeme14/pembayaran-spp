@@ -3,7 +3,7 @@
 @section('page_name','Data Siswa')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/siswa-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/siswa-script.js')}}"></script>
 @endsection
 
 @section('content')
@@ -47,9 +47,8 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-data w-100" data-url="{{route('siswa_data')}}" 
-                    data-url-detail="{{route('siswa_detail')}}" data-url-edit="{{route('siswa_edit')}}" 
-                    data-url-hapus="{{route('siswa_hapus')}}">
+                    <table class="table table-sm table-data w-100" data-url-detail="{{route('siswa_detail')}}" 
+                    data-url-edit="{{route('siswa_edit')}}" data-url-hapus="{{route('siswa_hapus')}}">
                         <thead class="bg-danger text-white">
                             <tr>
                                 <th>#</th>

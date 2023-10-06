@@ -3,7 +3,7 @@
 @section('page_name','Data Kelas')
 
 @section('page_script')
-<script src="{{asset('assets/js/back/kelas-script.js')}}"></script>
+<script src="{{asset('assets/js/back/pages/kelas-script.js')}}"></script>
 @endsection
 
 @section('content')
@@ -31,9 +31,8 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm table-data w-100" data-url="{{route('kelas_data')}}" 
-                    data-url-detail="{{route('kelas_detail')}}" data-url-edit="{{route('kelas_edit')}}" 
-                    data-url-hapus="{{route('kelas_hapus')}}">
+                    <table class="table table-sm table-data w-100" data-url-detail="{{route('kelas_detail')}}" 
+                    data-url-edit="{{route('kelas_edit')}}" data-url-hapus="{{route('kelas_hapus')}}">
                         <thead class="bg-danger text-white">
                             <tr>
                                 <th>#</th>

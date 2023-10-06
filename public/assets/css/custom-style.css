@@ -60,19 +60,19 @@ img.image-container{
 
 /* Auth Page Custom Style */
 .bg-auth-image {
-    background: url("../img/undraw_Mobile_pay_re_sjb8.svg");
+    background: url("../img/welcome-page-img.svg");
     background-position: 80% center;
     background-size: 50%;
     background-repeat: no-repeat;
 }
 .bg-reset-image {
-    background: url("../img/undraw_forgot_password_re_hxwm.svg");
+    background: url("../img/forgot-password-img.svg");
     background-position: 80% center;
     background-size: 50%;
     background-repeat: no-repeat;
 }
 .bg-verify-image {
-    background: url("../img/undraw_my_password_re_ydq7.svg");
+    background: url("../img/reset-password-img.svg");
     background-position: 80% center;
     background-size: 40%;
     background-repeat: no-repeat;
@@ -146,4 +146,10 @@ div:where(.swal2-container) button:where(.swal2-styled).swal2-confirm {
 }
 .bootstrap-select .dropdown-toggle .filter-option {
     color : #6e707e !important;
+}
+.bootstrap-select .dropdown-item.disabled, .bootstrap-select .dropdown-item:disabled {
+    color: #2e2f37;
+}
+.bootstrap-select .dropdown-item.active, .bootstrap-select .dropdown-item:active {
+    background-color: var(--danger);
 }

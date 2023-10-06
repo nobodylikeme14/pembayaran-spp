@@ -10,13 +10,15 @@ $(document).ready(function() {
             formElement.addClass('was-validated');
             return;
         }
-        var url = formElement.attr('action');
         var button = formElement.find("button[type=submit]");
-        button.html('Cetak<i class="fas fa-print fa-flip ml-2"></i>').prop("disabled", true );
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
         $.ajax({
+            beforeSend: function(){
+                button.html('Cetak<i class="fas fa-print fa-flip ml-2"></i>').prop("disabled", true );
+                formElement.removeClass('was-validated');
+                formElement.find('small.text-danger').remove();
+            },
             type: 'POST',
-            url: url,
+            url: window.location,
             data: formElement.serialize(),
             success: function(response) {
                 const link = document.createElement('a');
@@ -27,7 +29,6 @@ $(document).ready(function() {
             },
             error: function (err) {
                 if (err.status == 422) {
-                    formElement.find('small.text-danger').remove();
                     $.each(err.responseJSON.errors, function (i, error) {
                         var errorList = formElement.find('[name="'+i+'"]').closest(".form-group");
                         var element = `<small class="text-danger font-weight-bold">${error[0]}</small>`;
@@ -35,15 +36,10 @@ $(document).ready(function() {
                             $(this).remove();
                         }));
                     });
-                } else if (err.status == 404) {
-                    Swal.fire({
-                        icon: "error",
-                        title: err.responseJSON.message
-                    });
                 } else {
                     Swal.fire({
                         icon: "error",
-                        title: "Terjadi kesalahan saat mencetak laporan"
+                        title: err.responseJSON.message
                     });
                 }
             },
