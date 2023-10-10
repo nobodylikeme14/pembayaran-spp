@@ -124,9 +124,13 @@ img.image-container{
 .dataTables_processing > div:last-child > div {
     background: var(--danger) !important;
 }
+.dataTables_wrapper .page-item .page-link {
+    color: #858796 !important;
+}
 .dataTables_wrapper .page-item.active .page-link {
     background-color: var(--danger);
     border-color: var(--danger);
+    color: #fff !important;
 }
 
 /* SweetAlert Custom Style */
